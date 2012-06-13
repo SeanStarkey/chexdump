@@ -3,13 +3,15 @@
 
 #include <CUnit/Basic.h>
 
+#define OUTBUFFERSIZE 1024
+
 static FILE* outFile = NULL;
-static char outBuffer[1024];
+static char outBuffer[OUTBUFFERSIZE];
 static char testBuffer[256];
 
 int initOutFile()
 {
-    if (NULL == (outFile = fopen("build/out.txt", "w+"))) {
+    if (NULL == (outFile = fopen("build/out.txt", "w"))) {
         return -1;
     }
     else {
@@ -31,11 +33,15 @@ int closeOutFile()
 int readOutFile()
 {
     int bytesRead;
+    int cnt;
+
     if (NULL == (outFile = fopen("build/out.txt", "r"))) {
         return -1;
     }
 
-    bytesRead = fread(outBuffer, 1, 1024, outFile);
+    memset(outBuffer, 0, OUTBUFFERSIZE);
+
+    bytesRead = fread(outBuffer, 1, OUTBUFFERSIZE, outFile);
 
     if (0 != fclose(outFile)) {
         return -1;
@@ -78,29 +84,83 @@ void test_ptrTwoLines()
     CU_ASSERT_STRING_EQUAL(compareBuffer, outBuffer);
 }
 
-void test_file()
+void test_fileOneLine()
 {
-    /* FILE* out = fopen("out.txt", "w"); */
-    /* FILE* out = stdout; */
+    int bytesRead;
+    char l1[] = "00000000  31 32 33 34 35 36                                 123456          \n";
+    FILE* dataFile;
 
-    /* ptrhexdump(stdout, test, 208); */
+    dataFile = fopen("test/test.txt", "r");
+    initOutFile();
+    filehexdump(outFile, dataFile, 0, SEEK_SET, 6);
+    closeOutFile();
+    fclose(dataFile);
+    bytesRead = readOutFile();
 
-    /* FILE* fp = fopen("test.txt", "r"); */
-    /* ptrhexdump(temp_file, testBuffer, 0, SEEK_SET, 6); */
-    /* fprintf(out, "------------------------------------------------\n"); */
-    /* filehexdump(out, fp, 0, SEEK_SET, 25); */
-    /* fprintf(out, "------------------------------------------------\n"); */
-    /* filehexdump(out, fp, 6, SEEK_SET, 25); */
-    /* fprintf(out, "------------------------------------------------\n"); */
-    /* filehexdump(out, fp, 1, SEEK_SET, 8); */
-    /* fclose(fp); */
-    /* fclose(out); */
+    CU_ASSERT_EQUAL_FATAL(77, bytesRead);
+    CU_ASSERT_STRING_EQUAL(l1, outBuffer);
 }
 
-/* The suite initialization function.
- * Opens the temporary file used by the tests.
- * Returns zero on success, non-zero otherwise.
- */
+void test_fileTwoLines()
+{
+    int bytesRead;
+    char l1[] = "00000000  31 32 33 34 35 36 37 38 39 41 42 43 44 45 46 47   123456789ABCDEFG\n";
+    char l2[] = "00000010  48 49 4A 4B 4C 4D 4E 4F 50                        HIJKLMNOP       \n";
+    FILE* dataFile;
+    char compareBuffer[1024];
+
+    dataFile = fopen("test/test.txt", "r");
+    initOutFile();
+    filehexdump(outFile, dataFile, 0, SEEK_SET, 25);
+    closeOutFile();
+    fclose(dataFile);
+    bytesRead = readOutFile();
+    strcpy(compareBuffer, l1);
+    strcat(compareBuffer, l2);
+
+    CU_ASSERT_EQUAL_FATAL(154, bytesRead);
+    CU_ASSERT_STRING_EQUAL(compareBuffer, outBuffer);
+}
+
+void test_fileOneLineOffset()
+{
+    int bytesRead;
+    char l1[] = "00000002        33 34 35 36 37 38 39 41                       3456789A      \n";
+    FILE* dataFile;
+
+    dataFile = fopen("test/test.txt", "r");
+    initOutFile();
+    filehexdump(outFile, dataFile, 2, SEEK_SET, 8);
+    closeOutFile();
+    fclose(dataFile);
+    bytesRead = readOutFile();
+
+    CU_ASSERT_EQUAL_FATAL(77, bytesRead);
+    CU_ASSERT_STRING_EQUAL(l1, outBuffer);
+}
+
+void test_fileTwoLinesOffset()
+{
+    int bytesRead;
+    char l1[] = "00000006                    37 38 39 41 42 43 44 45 46 47         789ABCDEFG\n";
+    char l2[] = "00000010  48 49 4A 4B 4C 4D 4E 4F 50                        HIJKLMNOP       \n";
+    FILE* dataFile;
+    char compareBuffer[1024];
+
+    dataFile = fopen("test/test.txt", "r");
+    initOutFile();
+    filehexdump(outFile, dataFile, 6, SEEK_SET, 25);
+    closeOutFile();
+    fclose(dataFile);
+    bytesRead = readOutFile();
+    strcpy(compareBuffer, l1);
+    strcat(compareBuffer, l2);
+
+    CU_ASSERT_EQUAL_FATAL(154, bytesRead);
+    CU_ASSERT_STRING_EQUAL(compareBuffer, outBuffer);
+}
+
+
 int ptrSuiteInit(void)
 {
     int cnt;
@@ -112,10 +172,6 @@ int ptrSuiteInit(void)
     return 0;
 }
 
-/* The suite cleanup function.
- * Closes the temporary file used by the tests.
- * Returns zero on success, non-zero otherwise.
- */
 int fileSuiteInit(void)
 {
     return 0;
@@ -156,7 +212,19 @@ int setupFileSuite()
        return -1;
    }
 
-   if ((NULL == CU_add_test(fileSuite, "test of file - one line", test_file)))
+   if ((NULL == CU_add_test(fileSuite, "test of file - one line", test_fileOneLine)))
+   {
+      return -1;
+   }
+   if ((NULL == CU_add_test(fileSuite, "test of file - two lines", test_fileTwoLines)))
+   {
+      return -1;
+   }
+   if ((NULL == CU_add_test(fileSuite, "test of file - one line with offset", test_fileOneLineOffset)))
+   {
+      return -1;
+   }
+   if ((NULL == CU_add_test(fileSuite, "test of file - two lines with offset", test_fileTwoLinesOffset)))
    {
       return -1;
    }

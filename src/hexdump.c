@@ -3,11 +3,11 @@
 #include "hexdump.h"
 
 
-void line(FILE* output, char* pointer, unsigned start, unsigned extra)
+void line(FILE* output, unsigned char* pointer, unsigned start, unsigned extra)
 {
     unsigned cnt;
     unsigned char* pointerToPrint;
-    char ch;
+    unsigned char ch;
 
     for (cnt=(0x10-start); cnt<0x10; cnt++)
     {
@@ -44,7 +44,7 @@ void line(FILE* output, char* pointer, unsigned start, unsigned extra)
     }
 }
 
-void hexdump(FILE* output, char* pointer, unsigned long displayStart,
+void hexdump(FILE* output, unsigned char* pointer, unsigned long displayStart,
              unsigned long length)
 {
     unsigned long position;
@@ -81,7 +81,7 @@ void hexdump(FILE* output, char* pointer, unsigned long displayStart,
     }
 }
 
-void ptrhexdump(FILE* output, char* pointer, unsigned long length)
+void ptrhexdump(FILE* output, unsigned char* pointer, unsigned long length)
 {
     hexdump(output, pointer, 0, length);
 }
@@ -90,7 +90,7 @@ void filehexdump(FILE* output, FILE* input, long offset, int whence,
                  unsigned long length)
 {
     long currentPosition;
-    char buffer[1024];
+    unsigned char buffer[1024];
     unsigned long position;
     unsigned long displayOffset; /* Offset to start display at */
     unsigned bytesToRead;

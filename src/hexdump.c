@@ -3,9 +3,9 @@
 #include "hexdump.h"
 
 
-void line(FILE* output, void* pointer, unsigned start, unsigned extra)
+void line(FILE* output, char* pointer, unsigned start, unsigned extra)
 {
-    int cnt;
+    unsigned cnt;
     unsigned char* pointerToPrint;
     char ch;
 
@@ -44,7 +44,7 @@ void line(FILE* output, void* pointer, unsigned start, unsigned extra)
     }
 }
 
-void hexdump(FILE* output, void* pointer, unsigned long displayStart,
+void hexdump(FILE* output, char* pointer, unsigned long displayStart,
              unsigned long length)
 {
     unsigned long position;
@@ -81,7 +81,7 @@ void hexdump(FILE* output, void* pointer, unsigned long displayStart,
     }
 }
 
-void ptrhexdump(FILE* output, void* pointer, unsigned long length)
+void ptrhexdump(FILE* output, char* pointer, unsigned long length)
 {
     hexdump(output, pointer, 0, length);
 }
@@ -90,7 +90,7 @@ void filehexdump(FILE* output, FILE* input, long offset, int whence,
                  unsigned long length)
 {
     long currentPosition;
-    unsigned char buffer[1024];
+    char buffer[1024];
     unsigned long position;
     unsigned long displayOffset; /* Offset to start display at */
     unsigned bytesToRead;

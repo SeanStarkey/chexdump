@@ -23,10 +23,30 @@
 
 #include <stdio.h>
 #include <ctype.h>
+#include <stdarg.h>
 #include "hexdump.h"
 
 
-void line(FILE* output, unsigned char* pointer, unsigned start, unsigned extra)
+static FILE* outputfile;
+static char* outputbuffer;
+static unsigned long outputbufferoffset;
+
+void output(const char* format, ...)
+{
+    va_list arguments;
+    va_start(arguments, format);
+    if (outputfile != NULL) {
+        vfprintf(outputfile, format, arguments);
+    }
+    if (outputbuffer != NULL) {
+        outputbufferoffset +=
+            vsprintf(outputbuffer+outputbufferoffset, format, arguments);
+    }
+    va_end(arguments);
+}
+
+
+void line(unsigned char* pointer, unsigned start, unsigned extra)
 {
     unsigned cnt;
     unsigned char* pointerToPrint;
@@ -34,22 +54,22 @@ void line(FILE* output, unsigned char* pointer, unsigned start, unsigned extra)
 
     for (cnt=(0x10-start); cnt<0x10; cnt++)
     {
-        fprintf(output, "   ");
+        output("   ");
     }
     for (cnt=0; cnt<extra-start; cnt++)
     {
         pointerToPrint = (unsigned char*)(pointer+cnt);
-        fprintf(output, "%02X ", *pointerToPrint);
+        output("%02X ", *pointerToPrint);
     }
     for (cnt=extra; cnt<0x10; cnt++)
     {
-        fprintf(output, "   ");
+        output("   ");
     }
 
-    fprintf(output, "  ");
+    output("  ");
     for (cnt=(0x10-start); cnt<0x10; cnt++)
     {
-        fprintf(output, " ");
+        output(" ");
     }
     for (cnt=0; cnt<extra-start; cnt++)
     {
@@ -59,15 +79,15 @@ void line(FILE* output, unsigned char* pointer, unsigned start, unsigned extra)
         {
             ch = '.';
         }
-        fprintf(output, "%c", ch);
+        output("%c", ch);
     }
     for (cnt=extra; cnt<0x10; cnt++)
     {
-        fprintf(output, " ");
+        output(" ");
     }
 }
 
-void hexdump(FILE* output, unsigned char* pointer, unsigned long displayStart,
+void hexdump(unsigned char* pointer, unsigned long displayStart,
              unsigned long length)
 {
     unsigned long position;
@@ -84,9 +104,9 @@ void hexdump(FILE* output, unsigned char* pointer, unsigned long displayStart,
         extra = 0x10;
     }
 
-    fprintf(output, "%08lX  ", displayStart);
-    line(output, pointer, spacesAtStart, (unsigned)extra);
-    fprintf(output, "\n");
+    output("%08lX  ", displayStart);
+    line(pointer, spacesAtStart, (unsigned)extra);
+    output("\n");
 
     for (position = extra; position<length; position+=0x10)
     {
@@ -98,19 +118,31 @@ void hexdump(FILE* output, unsigned char* pointer, unsigned long displayStart,
 
         display = displayStart + position - spacesAtStart;
 
-        fprintf(output, "%08lX  ", display);
-        line(output, pointer+position, 0, (unsigned)extra);
-        fprintf(output, "\n");
+        output("%08lX  ", display);
+        line(pointer+position, 0, (unsigned)extra);
+        output("\n");
     }
 }
 
-void ptrhexdump(FILE* output, unsigned char* pointer, unsigned long length)
+void ptrhexdumpToFile(FILE* output,
+                      unsigned char* input, unsigned long inputLength)
 {
-    hexdump(output, pointer, 0, length);
+    outputfile = output;
+    outputbuffer = NULL;
+    hexdump(input, 0, inputLength);
 }
 
-void filehexdump(FILE* output, FILE* input, long offset, int whence,
-                 unsigned long length)
+void ptrhexdumpToStr(char* output, unsigned long outputLength,
+                     unsigned char* input, unsigned long inputLength)
+{
+    outputfile = NULL;
+    outputbuffer = output;
+    outputbufferoffset = 0;
+    hexdump(input, 0, inputLength);
+}
+
+void filehexdumpToFile(FILE* output, FILE* input, long offset, int whence,
+                 unsigned long inputLength)
 {
     long currentPosition;
     unsigned char buffer[1024];
@@ -119,20 +151,64 @@ void filehexdump(FILE* output, FILE* input, long offset, int whence,
     unsigned bytesToRead;
     size_t bytesRead;
 
+    outputfile = output;
+    outputbuffer = NULL;
+
     currentPosition = ftell(input);
     fseek(input, offset, whence);
 
     position = 0;
-    while (position < length)
+    while (position < inputLength)
     {
         displayOffset = ftell(input);
-        bytesToRead = length - position;
+        bytesToRead = inputLength - position;
         if (bytesToRead > 1024)
         {
             bytesToRead = 1024;
         }
         bytesRead = fread(buffer, 1, bytesToRead, input);
-        hexdump(output, buffer, displayOffset, bytesRead);
+        hexdump(buffer, displayOffset, bytesRead);
+
+        position += bytesRead;
+
+        if (bytesRead < bytesToRead)
+        {
+            break;
+        }
+    }
+
+    fseek(input, currentPosition, SEEK_SET);
+}
+
+void filehexdumpToStr(char* output, unsigned long outputLength,
+                      FILE* input, long offset, int whence,
+                      unsigned long inputLength)
+{
+    long currentPosition;
+    unsigned char buffer[1024];
+    unsigned long position;
+    unsigned long displayOffset; /* Offset to start display at */
+    unsigned bytesToRead;
+    size_t bytesRead;
+
+    outputfile = NULL;
+    outputbuffer = output;
+    outputbufferoffset = 0;
+
+    currentPosition = ftell(input);
+    fseek(input, offset, whence);
+
+    position = 0;
+    while (position < inputLength)
+    {
+        displayOffset = ftell(input);
+        bytesToRead = inputLength - position;
+        if (bytesToRead > 1024)
+        {
+            bytesToRead = 1024;
+        }
+        bytesRead = fread(buffer, 1, bytesToRead, input);
+        hexdump(buffer, displayOffset, bytesRead);
 
         position += bytesRead;
 

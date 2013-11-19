@@ -24,8 +24,15 @@
 #ifndef _HEXDUMP_H
 #define _HEXDUMP_H
 
-void ptrhexdump(FILE* output, unsigned char* pointer, unsigned long length);
-void filehexdump(FILE* output, FILE* input, long offset, int whence,
-                 unsigned long length);
+void ptrhexdumpToFile(FILE* output,
+                      unsigned char* input, unsigned long inputLength);
+void ptrhexdumpToStr(char* output, unsigned long outputLength,
+                     unsigned char* input, unsigned long inputLength);
+void filehexdumpToFile(FILE* output,
+                       FILE* input, long offset, int whence,
+                       unsigned long inputLength);
+void filehexdumpToStr(char* output, unsigned long outputLength,
+                      FILE* input, long offset, int whence,
+                      unsigned long inputLength);
 
 #endif

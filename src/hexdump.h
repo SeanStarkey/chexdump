@@ -24,6 +24,10 @@
 #ifndef _HEXDUMP_H
 #define _HEXDUMP_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void ptrhexdumpToFile(FILE* output,
                       unsigned char* input, unsigned long inputLength);
 void ptrhexdumpToStr(char* output, unsigned long outputLength,
@@ -34,5 +38,9 @@ void filehexdumpToFile(FILE* output,
 void filehexdumpToStr(char* output, unsigned long outputLength,
                       FILE* input, long offset, int whence,
                       unsigned long inputLength);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
